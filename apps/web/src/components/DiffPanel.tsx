@@ -24,7 +24,7 @@ import { checkpointDiffQueryOptions } from "~/lib/providerReactQuery";
 import { cn } from "~/lib/utils";
 import { readNativeApi } from "../nativeApi";
 import { resolvePathLinkTarget } from "../terminal-links";
-import { parseDiffRouteSearch, stripDiffSearchParams } from "../diffRouteSearch";
+import { clearPanelSearchParams, parseDiffRouteSearch } from "../diffRouteSearch";
 import { useTheme } from "../hooks/useTheme";
 import { buildPatchCacheKey } from "../lib/diffRendering";
 import { resolveDiffThemeName } from "../lib/diffRendering";
@@ -338,7 +338,7 @@ export default function DiffPanel({ mode = "inline" }: DiffPanelProps) {
       to: "/$threadId",
       params: { threadId: activeThread.id },
       search: (previous) => {
-        const rest = stripDiffSearchParams(previous);
+        const rest = clearPanelSearchParams(previous);
         return { ...rest, diff: "1", diffTurnId: turnId };
       },
     });
@@ -349,7 +349,7 @@ export default function DiffPanel({ mode = "inline" }: DiffPanelProps) {
       to: "/$threadId",
       params: { threadId: activeThread.id },
       search: (previous) => {
-        const rest = stripDiffSearchParams(previous);
+        const rest = clearPanelSearchParams(previous);
         return { ...rest, diff: "1" };
       },
     });

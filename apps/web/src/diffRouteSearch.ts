@@ -6,7 +6,13 @@ export interface DiffRouteSearch {
   diffFilePath?: string | undefined;
 }
 
-function isDiffOpenValue(value: unknown): boolean {
+export interface BrowserRouteSearch {
+  browser?: "1" | undefined;
+}
+
+export type ChatPanelsRouteSearch = DiffRouteSearch & BrowserRouteSearch;
+
+function isOpenPanelValue(value: unknown): boolean {
   return value === "1" || value === 1 || value === true;
 }
 
@@ -25,8 +31,41 @@ export function stripDiffSearchParams<T extends Record<string, unknown>>(
   return rest as Omit<T, "diff" | "diffTurnId" | "diffFilePath">;
 }
 
+export function stripBrowserSearchParams<T extends Record<string, unknown>>(
+  params: T,
+): Omit<T, "browser"> {
+  const { browser: _browser, ...rest } = params;
+  return rest as Omit<T, "browser">;
+}
+
+export function stripPanelSearchParams<T extends Record<string, unknown>>(
+  params: T,
+): Omit<T, "browser" | "diff" | "diffTurnId" | "diffFilePath"> {
+  const withoutDiff = stripDiffSearchParams(params);
+  const withoutPanels = stripBrowserSearchParams(withoutDiff);
+  return withoutPanels as Omit<T, "browser" | "diff" | "diffTurnId" | "diffFilePath">;
+}
+
+export function clearPanelSearchParams<T extends Record<string, unknown>>(
+  params: T,
+): Omit<T, "browser" | "diff" | "diffTurnId" | "diffFilePath"> & {
+  browser: undefined;
+  diff: undefined;
+  diffTurnId: undefined;
+  diffFilePath: undefined;
+} {
+  const rest = stripPanelSearchParams(params);
+  return {
+    ...rest,
+    browser: undefined,
+    diff: undefined,
+    diffTurnId: undefined,
+    diffFilePath: undefined,
+  };
+}
+
 export function parseDiffRouteSearch(search: Record<string, unknown>): DiffRouteSearch {
-  const diff = isDiffOpenValue(search.diff) ? "1" : undefined;
+  const diff = isOpenPanelValue(search.diff) ? "1" : undefined;
   const diffTurnIdRaw = diff ? normalizeSearchString(search.diffTurnId) : undefined;
   const diffTurnId = diffTurnIdRaw ? TurnId.makeUnsafe(diffTurnIdRaw) : undefined;
   const diffFilePath = diff && diffTurnId ? normalizeSearchString(search.diffFilePath) : undefined;
@@ -35,5 +74,16 @@ export function parseDiffRouteSearch(search: Record<string, unknown>): DiffRoute
     ...(diff ? { diff } : {}),
     ...(diffTurnId ? { diffTurnId } : {}),
     ...(diffFilePath ? { diffFilePath } : {}),
+  };
+}
+
+export function parseBrowserRouteSearch(search: Record<string, unknown>): BrowserRouteSearch {
+  return isOpenPanelValue(search.browser) ? { browser: "1" } : {};
+}
+
+export function parseChatPanelsRouteSearch(search: Record<string, unknown>): ChatPanelsRouteSearch {
+  return {
+    ...parseDiffRouteSearch(search),
+    ...parseBrowserRouteSearch(search),
   };
 }

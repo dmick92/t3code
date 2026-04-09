@@ -2,10 +2,12 @@ import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import pkg from "./package.json" with { type: "json" };
 
 const port = Number(process.env.PORT ?? 5733);
+const backendPort = Number(process.env.T3CODE_PORT ?? 3773);
 const sourcemapEnv = process.env.T3CODE_WEB_SOURCEMAP?.trim().toLowerCase();
 
 const buildSourcemap =
@@ -16,6 +18,7 @@ const buildSourcemap =
       : true;
 
 export default defineConfig({
+  cacheDir: ".vite",
   plugins: [
     tanstackRouter(),
     react(),
@@ -38,11 +41,23 @@ export default defineConfig({
     "import.meta.env.APP_VERSION": JSON.stringify(pkg.version),
   },
   resolve: {
+    alias: {
+      "react/compiler-runtime": fileURLToPath(
+        new URL("./src/shims/reactCompilerRuntime.ts", import.meta.url),
+      ),
+    },
     tsconfigPaths: true,
   },
   server: {
+    host: true,
     port,
     strictPort: true,
+    proxy: {
+      "/ws": {
+        target: `http://127.0.0.1:${backendPort}`,
+        ws: true,
+      },
+    },
     hmr: {
       // Explicit config so Vite's HMR WebSocket connects reliably
       // inside Electron's BrowserWindow. Vite 8 uses console.debug for

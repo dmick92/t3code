@@ -159,7 +159,6 @@ export function createDevRunnerEnv({
 
     if (!isDesktopMode) {
       output.T3CODE_PORT = String(serverPort);
-      output.VITE_WS_URL = `ws://localhost:${serverPort}`;
     } else {
       delete output.T3CODE_PORT;
       delete output.VITE_WS_URL;

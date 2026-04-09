@@ -30,7 +30,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useGitStatus } from "~/lib/gitStatusState";
 import { projectSearchEntriesQueryOptions } from "~/lib/projectReactQuery";
 import { isElectron } from "../env";
-import { parseDiffRouteSearch, stripDiffSearchParams } from "../diffRouteSearch";
+import { clearPanelSearchParams, parseChatPanelsRouteSearch } from "../diffRouteSearch";
 import {
   clampCollapsedComposerCursor,
   type ComposerTrigger,
@@ -545,7 +545,7 @@ export default function ChatView({ threadId }: ChatViewProps) {
   const navigate = useNavigate();
   const rawSearch = useSearch({
     strict: false,
-    select: (params) => parseDiffRouteSearch(params),
+    select: (params) => parseChatPanelsRouteSearch(params),
   });
   const { resolvedTheme } = useTheme();
   const composerDraft = useComposerThreadDraft(threadId);
@@ -800,7 +800,10 @@ export default function ChatView({ threadId }: ChatViewProps) {
   const isServerThread = serverThread !== undefined;
   const isLocalDraftThread = !isServerThread && localDraftThread !== undefined;
   const canCheckoutPullRequestIntoThread = isLocalDraftThread;
-  const diffOpen = rawSearch.diff === "1";
+  const activeSidePanel =
+    rawSearch.browser === "1" ? "browser" : rawSearch.diff === "1" ? "diff" : null;
+  const diffOpen = activeSidePanel === "diff";
+  const browserOpen = activeSidePanel === "browser";
   const activeThreadId = activeThread?.id ?? null;
   const existingOpenTerminalThreadIds = useMemo(() => {
     const existingThreadIds = new Set<ThreadId>([...serverThreadIds, ...draftThreadIds]);
@@ -1536,11 +1539,37 @@ export default function ChatView({ threadId }: ChatViewProps) {
       params: { threadId },
       replace: true,
       search: (previous) => {
-        const rest = stripDiffSearchParams(previous);
-        return diffOpen ? { ...rest, diff: undefined } : { ...rest, diff: "1" };
+        if (diffOpen) {
+          return clearPanelSearchParams(previous);
+        }
+        const rest = clearPanelSearchParams(previous);
+        return { ...rest, diff: "1" };
       },
     });
   }, [diffOpen, navigate, threadId]);
+
+  const setBrowserOpen = useCallback(
+    (open: boolean) => {
+      if (!activeThreadId) return;
+      void navigate({
+        to: "/$threadId",
+        params: { threadId: activeThreadId },
+        replace: true,
+        search: (previous) => {
+          if (!open) {
+            return clearPanelSearchParams(previous);
+          }
+          const rest = clearPanelSearchParams(previous);
+          return { ...rest, browser: "1" };
+        },
+      });
+    },
+    [activeThreadId, navigate],
+  );
+  const toggleBrowser = useCallback(() => {
+    if (!activeThreadId) return;
+    setBrowserOpen(!browserOpen);
+  }, [activeThreadId, browserOpen, setBrowserOpen]);
 
   const envLocked = Boolean(
     activeThread &&
@@ -3839,7 +3868,7 @@ export default function ChatView({ threadId }: ChatViewProps) {
         to: "/$threadId",
         params: { threadId },
         search: (previous) => {
-          const rest = stripDiffSearchParams(previous);
+          const rest = clearPanelSearchParams(previous);
           return filePath
             ? { ...rest, diff: "1", diffTurnId: turnId, diffFilePath: filePath }
             : { ...rest, diff: "1", diffTurnId: turnId };
@@ -3917,6 +3946,9 @@ export default function ChatView({ threadId }: ChatViewProps) {
           onDeleteProjectScript={deleteProjectScript}
           onToggleTerminal={toggleTerminalVisibility}
           onToggleDiff={onToggleDiff}
+          browserOpen={browserOpen}
+          browserToggleShortcutLabel={null}
+          onToggleBrowser={toggleBrowser}
         />
       </header>
 

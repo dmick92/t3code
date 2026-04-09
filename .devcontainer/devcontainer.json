@@ -1,6 +1,7 @@
 {
   "name": "T3 Code Dev",
   "image": "debian:bookworm",
+  "remoteUser": "node",
   "features": {
     "ghcr.io/devcontainers-extra/features/bun:1": {},
     "ghcr.io/devcontainers/features/node:1": {
@@ -13,6 +14,16 @@
   },
   "postCreateCommand": {
     "bun-install": "bun install --backend=copyfile --frozen-lockfile"
+  },
+  "forwardPorts": [5733, 3773],
+  "portsAttributes": {
+    "5733": {
+      "label": "Web (Vite)",
+      "onAutoForward": "openBrowser"
+    },
+    "3773": {
+      "label": "Server (WS/API)"
+    }
   },
   "customizations": {
     "vscode": {
